@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake AI Assistant — Download</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080b0f;
+      --surface: #0e1318;
+      --border: #1e2730;
+      --accent: #00e5a0;
+      --accent2: #00b4ff;
+      --text: #e8f0f7;
+      --muted: #6b7d8e;
+      --danger: #ff4d6d;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glowing orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      animation: drift 12s ease-in-out infinite;
+    }
+    .orb1 {
+      width: 500px; height: 500px;
+      background: rgba(0,229,160,0.08);
+      top: -150px; left: -150px;
+      animation-delay: 0s;
+    }
+    .orb2 {
+      width: 400px; height: 400px;
+      background: rgba(0,180,255,0.07);
+      bottom: -100px; right: -100px;
+      animation-delay: -6s;
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(30px, 20px); }
+    }
+
+    /* Nav */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      background: rgba(8,11,15,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .nav-logo span { color: var(--text); }
+    .nav-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .hero-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      border: 1px solid rgba(0,229,160,0.3);
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s 0.1s ease both;
+    }
+    .hero h1 .line-accent {
+      display: block;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 48px;
+      font-weight: 400;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    /* Download card */
+    .download-card {
+      animation: fadeUp 0.8s 0.3s ease both;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 40px;
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      overflow: hidden;
+    }
+    .download-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+
+    .dl-platform {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .dl-icon {
+      width: 44px; height: 44px;
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.2);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .dl-info h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .dl-info p {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .dl-meta {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .dl-meta-item {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .dl-meta-item .val {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .dl-meta-item .lbl {
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, var(--accent), #00c485);
+      color: #080b0f;
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      letter-spacing: 0.01em;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-download::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: white;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,229,160,0.3); }
+    .btn-download:hover::after { opacity: 0.08; }
+    .btn-download:active { transform: translateY(0); }
+
+    .btn-icon { font-size: 1.2rem; }
+
+    .dl-note {
+      margin-top: 14px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+    .dl-note a { color: var(--accent2); text-decoration: none; }
+    .dl-note a:hover { text-decoration: underline; }
+
+    /* Install steps */
+    .steps {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .step-num {
+      min-width: 22px; height: 22px;
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Features section */
+    .features {
+      position: relative;
+      z-index: 1;
+      padding: 80px 24px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .features-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(0,229,160,0.3);
+      transform: translateY(-3px);
+    }
+    .feature-icon {
+      font-size: 1.8rem;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: gap;
+      gap: 16px;
+    }
+    footer p {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    footer a {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent2);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scrolling ticker */
+    .ticker-wrap {
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      background: var(--surface);
+      margin-bottom: 0;
+    }
+    .ticker {
+      display: flex;
+      gap: 48px;
+      animation: ticker 20s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-item {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .ticker-item span { color: var(--accent); margin-right: 12px; }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .download-card { padding: 24px 20px; }
+      footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-logo">Snake<span>AI</span></div>
+    <div class="nav-badge">v1.0.0 · Windows</div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-tag">⚡ Now Available — Free Download</div>
+    <h1>
+      Your AI
+      <span class="line-accent">Meeting Assistant</span>
+    </h1>
+    <p class="hero-desc">
+      Snake AI listens, transcribes, and summarizes your meetings in real time — powered by local AI, no subscription required.
+    </p>
+
+    <!-- Download Card -->
+    <div class="download-card">
+      <div class="dl-platform">
+        <div class="dl-icon">🪟</div>
+        <div class="dl-info">
+          <h3>Windows Desktop App</h3>
+          <p>win-unpacked · x64 · Portable ZIP</p>
+        </div>
+      </div>
+
+      <div class="dl-meta">
+        <div class="dl-meta-item">
+          <span class="val">~110 MB</span>
+          <span class="lbl">Size</span>
+        </div>
+        <div class="dl-meta-item">
+          <span class="val">v1.0.0</span>
+          <span class="lbl">Version</span>
+        </div>
+        <div class="dl-meta-item">
+          <span class="val">Free</span>
+          <span class="lbl">License</span>
+        </div>
+      </div>
+
+      <a
+        class="btn-download"
+        href="https://github.com/bathala262-ops/snake-ai-assistant/releases/download/v1.0.0/win-unpacked.zip"
+        download
+      >
+        <span class="btn-icon">⬇</span>
+        Download for Windows
+      </a>
+
+      <p class="dl-note">
+        No installer needed · Portable app ·
+        <a href="https://github.com/bathala262-ops/snake-ai-assistant/releases/tag/v1.0.0" target="_blank">View on GitHub</a>
+      </p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <span>Download and unzip <strong style="color:var(--text)">win-unpacked.zip</strong></span>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <span>Open the unzipped folder</span>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <span>Double-click <strong style="color:var(--text)">Snake-Ai.exe</strong> to launch</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <div class="ticker-item"><span>✦</span> Real-time Transcription</div>
+      <div class="ticker-item"><span>✦</span> AI Meeting Summaries</div>
+      <div class="ticker-item"><span>✦</span> Works Offline</div>
+      <div class="ticker-item"><span>✦</span> No Subscription</div>
+      <div class="ticker-item"><span>✦</span> Windows Native</div>
+      <div class="ticker-item"><span>✦</span> Free Forever</div>
+      <!-- duplicate for seamless loop -->
+      <div class="ticker-item"><span>✦</span> Real-time Transcription</div>
+      <div class="ticker-item"><span>✦</span> AI Meeting Summaries</div>
+      <div class="ticker-item"><span>✦</span> Works Offline</div>
+      <div class="ticker-item"><span>✦</span> No Subscription</div>
+      <div class="ticker-item"><span>✦</span> Windows Native</div>
+      <div class="ticker-item"><span>✦</span> Free Forever</div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="features">
+    <p class="features-label">// What's inside</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">🎙️</span>
+        <h3>Live Transcription</h3>
+        <p>Captures everything spoken in your meetings with high accuracy, in real time.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🤖</span>
+        <h3>AI Summaries</h3>
+        <p>Automatically generates concise meeting summaries and action items when you're done.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🔒</span>
+        <h3>Fully Local</h3>
+        <p>Your conversations never leave your machine. No cloud, no data sharing.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">⚡</span>
+        <h3>Portable App</h3>
+        <p>No installation needed. Unzip and run — works on any Windows 10/11 PC.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <h3>Zero Subscription</h3>
+        <p>One download, use forever. No account, no login, no monthly fees.</p>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🛠️</span>
+        <h3>Open Source</h3>
+        <p>Built transparently. Check the code, contribute, or build on top of it freely.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2026 Snake AI Assistant · Built with Electron</p>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <a href="https://github.com/bathala262-ops/snake-ai-assistant" target="_blank">GitHub →</a>
+      <a href="https://github.com/bathala262-ops/snake-ai-assistant/releases" target="_blank">All Releases →</a>
+      <a href="https://github.com/bathala262-ops/snake-ai-assistant/issues" target="_blank">Report a Bug →</a>
+    </div>
+  </footer>
+
+</body>
+</html>
