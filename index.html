@@ -1,567 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Snake AI Assistant — Download</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <title>Snake AI Assistant — by Ganesh Bathala</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #080b0f;
-      --surface: #0e1318;
-      --border: #1e2730;
-      --accent: #00e5a0;
-      --accent2: #00b4ff;
-      --text: #e8f0f7;
-      --muted: #6b7d8e;
-      --danger: #ff4d6d;
+      --bg: #020408;
+      --accent: #0ff;
+      --accent2: #a855f7;
+      --accent3: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #475569;
+      --surface: rgba(15,25,40,0.85);
+      --border: rgba(0,255,255,0.15);
     }
+    html, body { width:100%; height:100%; background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; overflow-x:hidden; }
+    #bg-canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; }
+    body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:1; }
+    .page { position:relative; z-index:2; min-height:100vh; }
 
-    html { scroll-behavior: smooth; }
+    nav { position:fixed; top:0; left:0; right:0; z-index:50; display:flex; align-items:center; justify-content:space-between; padding:18px 48px; background:rgba(2,4,8,0.75); backdrop-filter:blur(24px); border-bottom:1px solid var(--border); }
+    .nav-logo { font-family:'Orbitron',monospace; font-size:1rem; font-weight:900; letter-spacing:.15em; color:var(--accent); text-shadow:0 0 20px rgba(0,255,255,.5); }
+    .nav-logo em { color:var(--accent2); font-style:normal; }
+    .nav-by { font-size:.75rem; color:var(--muted); letter-spacing:.1em; text-transform:uppercase; }
+    .nav-by span { color:var(--accent3); font-weight:700; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Syne', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+    .hero { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:110px 24px 70px; }
+    .hero-eyebrow { font-family:'Orbitron',monospace; font-size:.62rem; letter-spacing:.4em; color:var(--accent); text-transform:uppercase; margin-bottom:24px; opacity:0; animation:fadeUp 1s .2s ease forwards; }
+    .hero-title { font-family:'Orbitron',monospace; font-size:clamp(2.4rem,7vw,5.5rem); font-weight:900; line-height:1; letter-spacing:-.02em; margin-bottom:14px; opacity:0; animation:fadeUp 1s .35s ease forwards; }
+    .glow-c { color:var(--accent); text-shadow:0 0 30px rgba(0,255,255,.6),0 0 80px rgba(0,255,255,.2); }
+    .glow-p { color:var(--accent2); text-shadow:0 0 30px rgba(168,85,247,.6),0 0 80px rgba(168,85,247,.2); }
+    .hero-sub { font-family:'Orbitron',monospace; font-size:clamp(.8rem,1.8vw,1rem); color:var(--muted); letter-spacing:.1em; margin-bottom:16px; opacity:0; animation:fadeUp 1s .5s ease forwards; }
 
-    /* Animated grid background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
+    .creator-badge { display:inline-flex; align-items:center; gap:10px; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); border-radius:40px; padding:8px 20px; margin-bottom:44px; opacity:0; animation:fadeUp 1s .65s ease forwards; }
+    .dot { width:6px; height:6px; background:var(--accent3); border-radius:50%; animation:pulse 2s infinite; }
+    .creator-badge span { font-family:'Orbitron',monospace; font-size:.68rem; letter-spacing:.15em; color:var(--accent3); text-transform:uppercase; }
+    .creator-badge strong { font-weight:900; color:#fff; }
 
-    /* Glowing orbs */
-    .orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(120px);
-      pointer-events: none;
-      z-index: 0;
-      animation: drift 12s ease-in-out infinite;
-    }
-    .orb1 {
-      width: 500px; height: 500px;
-      background: rgba(0,229,160,0.08);
-      top: -150px; left: -150px;
-      animation-delay: 0s;
-    }
-    .orb2 {
-      width: 400px; height: 400px;
-      background: rgba(0,180,255,0.07);
-      bottom: -100px; right: -100px;
-      animation-delay: -6s;
-    }
-    @keyframes drift {
-      0%, 100% { transform: translate(0, 0); }
-      50% { transform: translate(30px, 20px); }
-    }
+    .card-3d-wrap { opacity:0; animation:fadeUp 1s .8s ease forwards; perspective:1200px; }
+    .card-3d { background:var(--surface); border:1px solid var(--border); border-radius:24px; padding:36px 44px; width:100%; max-width:500px; position:relative; transform-style:preserve-3d; transition:transform .12s ease,box-shadow .3s ease; box-shadow:0 0 0 1px rgba(0,255,255,.04),0 30px 60px rgba(0,0,0,.8),0 0 60px rgba(0,255,255,.04); }
+    .card-3d::before { content:''; position:absolute; top:0; left:20px; right:20px; height:2px; background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent); border-radius:2px; box-shadow:0 0 20px rgba(0,255,255,.7); }
+    .card-3d::after { content:''; position:absolute; bottom:0; left:20px; right:20px; height:1px; background:linear-gradient(90deg,transparent,rgba(168,85,247,.35),transparent); }
+    .corner { position:absolute; width:16px; height:16px; border-color:var(--accent); border-style:solid; }
+    .c-tl { top:12px; left:12px; border-width:2px 0 0 2px; }
+    .c-tr { top:12px; right:12px; border-width:2px 2px 0 0; }
+    .c-bl { bottom:12px; left:12px; border-width:0 0 2px 2px; }
+    .c-br { bottom:12px; right:12px; border-width:0 2px 2px 0; }
 
-    /* Nav */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 48px;
-      background: rgba(8,11,15,0.8);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-    .nav-logo {
-      font-size: 1.1rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--accent);
-      text-transform: uppercase;
-    }
-    .nav-logo span { color: var(--text); }
-    .nav-badge {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
+    .card-hdr { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+    .card-ico { width:52px; height:52px; background:linear-gradient(135deg,rgba(0,255,255,.1),rgba(168,85,247,.1)); border:1px solid rgba(0,255,255,.2); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; box-shadow:0 0 20px rgba(0,255,255,.08); }
+    .card-t { font-family:'Orbitron',monospace; font-size:.9rem; font-weight:700; color:#fff; margin-bottom:4px; }
+    .card-s { font-size:.72rem; color:var(--muted); letter-spacing:.04em; }
 
-    /* Hero */
-    .hero {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-    }
+    .stats { display:flex; gap:10px; margin-bottom:26px; }
+    .stat { flex:1; background:rgba(0,255,255,.03); border:1px solid rgba(0,255,255,.08); border-radius:12px; padding:12px; text-align:center; position:relative; overflow:hidden; }
+    .stat::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,255,.3),transparent); }
+    .sv { font-family:'Orbitron',monospace; font-size:.88rem; font-weight:700; color:var(--accent); display:block; text-shadow:0 0 10px rgba(0,255,255,.4); }
+    .sl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; display:block; }
 
-    .hero-tag {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.2em;
-      color: var(--accent);
-      text-transform: uppercase;
-      border: 1px solid rgba(0,229,160,0.3);
-      padding: 6px 16px;
-      border-radius: 20px;
-      margin-bottom: 32px;
-      animation: fadeUp 0.8s ease both;
-    }
+    .btn-dl { display:flex; align-items:center; justify-content:center; gap:12px; width:100%; padding:18px 24px; background:linear-gradient(135deg,rgba(0,255,255,.12),rgba(168,85,247,.12)); border:1px solid rgba(0,255,255,.35); border-radius:14px; color:var(--accent); font-family:'Orbitron',monospace; font-size:.82rem; font-weight:700; letter-spacing:.15em; text-transform:uppercase; text-decoration:none; cursor:pointer; transition:all .3s ease; position:relative; overflow:hidden; box-shadow:0 0 20px rgba(0,255,255,.08),inset 0 0 20px rgba(0,255,255,.02); }
+    .btn-dl::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(0,255,255,.18),rgba(168,85,247,.18)); opacity:0; transition:opacity .3s; }
+    .btn-dl:hover { border-color:var(--accent); box-shadow:0 0 40px rgba(0,255,255,.22),0 0 80px rgba(0,255,255,.08),inset 0 0 30px rgba(0,255,255,.04); transform:translateY(-2px); color:#fff; text-shadow:0 0 10px rgba(0,255,255,.8); }
+    .btn-dl:hover::before { opacity:1; }
+    .btn-dl:active { transform:translateY(0); }
+    .bi { font-size:1.2rem; position:relative; z-index:1; }
+    .bt { position:relative; z-index:1; }
 
-    .hero h1 {
-      font-size: clamp(3rem, 8vw, 6.5rem);
-      font-weight: 800;
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-      margin-bottom: 24px;
-      animation: fadeUp 0.8s 0.1s ease both;
-    }
-    .hero h1 .line-accent {
-      display: block;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
+    .dl-note { margin-top:12px; font-size:.68rem; color:var(--muted); text-align:center; letter-spacing:.04em; }
+    .dl-note a { color:rgba(168,85,247,.8); text-decoration:none; transition:color .2s; }
+    .dl-note a:hover { color:var(--accent2); }
 
-    .hero-desc {
-      font-size: 1.15rem;
-      color: var(--muted);
-      max-width: 520px;
-      line-height: 1.7;
-      margin-bottom: 48px;
-      font-weight: 400;
-      animation: fadeUp 0.8s 0.2s ease both;
-    }
+    .steps { margin-top:22px; display:flex; flex-direction:column; gap:9px; text-align:left; }
+    .step { display:flex; align-items:center; gap:13px; padding:10px 14px; background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.04); border-radius:10px; font-size:.82rem; color:var(--muted); transition:border-color .2s,color .2s; }
+    .step:hover { border-color:rgba(0,255,255,.15); color:var(--text); }
+    .sn { font-family:'Orbitron',monospace; font-size:.62rem; font-weight:700; color:var(--accent); background:rgba(0,255,255,.08); border:1px solid rgba(0,255,255,.2); border-radius:6px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
-    /* Download card */
-    .download-card {
-      animation: fadeUp 0.8s 0.3s ease both;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px 40px;
-      width: 100%;
-      max-width: 480px;
-      position: relative;
-      overflow: hidden;
-    }
-    .download-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-    }
+    .ticker-wrap { position:relative; z-index:2; overflow:hidden; border-top:1px solid rgba(0,255,255,.08); border-bottom:1px solid rgba(0,255,255,.08); padding:13px 0; background:rgba(0,255,255,.02); }
+    .ticker { display:flex; gap:60px; animation:tick 26s linear infinite; white-space:nowrap; }
+    .ti { font-family:'Orbitron',monospace; font-size:.62rem; color:var(--muted); letter-spacing:.2em; text-transform:uppercase; flex-shrink:0; }
+    .ti b { color:var(--accent); margin-right:10px; }
 
-    .dl-platform {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .dl-icon {
-      width: 44px; height: 44px;
-      background: rgba(0,229,160,0.1);
-      border: 1px solid rgba(0,229,160,0.2);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-    }
-    .dl-info h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 2px;
-    }
-    .dl-info p {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
+    .features { position:relative; z-index:2; padding:60px 24px 80px; max-width:1100px; margin:0 auto; }
+    .sec-lbl { font-family:'Orbitron',monospace; font-size:.58rem; color:var(--muted); letter-spacing:.3em; text-transform:uppercase; text-align:center; margin-bottom:40px; }
+    .sec-lbl b { color:var(--accent); }
+    .feat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+    .feat { background:rgba(10,18,28,.6); border:1px solid rgba(0,255,255,.07); border-radius:18px; padding:28px; position:relative; overflow:hidden; transition:all .3s ease; }
+    .feat::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(0,255,255,.2),transparent); opacity:0; transition:opacity .3s; }
+    .feat:hover { border-color:rgba(0,255,255,.2); transform:translateY(-4px); box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 30px rgba(0,255,255,.05); }
+    .feat:hover::before { opacity:1; }
+    .fi { font-size:1.9rem; margin-bottom:14px; display:block; }
+    .feat h3 { font-family:'Orbitron',monospace; font-size:.78rem; font-weight:700; color:#fff; letter-spacing:.05em; margin-bottom:10px; }
+    .feat p { font-size:.84rem; color:var(--muted); line-height:1.65; }
 
-    .dl-meta {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    .dl-meta-item {
-      flex: 1;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      text-align: center;
-    }
-    .dl-meta-item .val {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--accent);
-      display: block;
-      margin-bottom: 2px;
-    }
-    .dl-meta-item .lbl {
-      font-size: 0.65rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
+    footer { position:relative; z-index:2; border-top:1px solid rgba(0,255,255,.07); padding:30px 48px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; background:rgba(2,4,8,.6); }
+    .fl { font-size:.7rem; color:var(--muted); letter-spacing:.05em; }
+    .fl strong { color:var(--accent3); }
+    .flinks { display:flex; gap:24px; flex-wrap:wrap; }
+    .flinks a { font-family:'Orbitron',monospace; font-size:.6rem; color:var(--muted); text-decoration:none; letter-spacing:.1em; transition:color .2s; }
+    .flinks a:hover { color:var(--accent); }
 
-    .btn-download {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 16px 24px;
-      background: linear-gradient(135deg, var(--accent), #00c485);
-      color: #080b0f;
-      font-family: 'Syne', sans-serif;
-      font-size: 1rem;
-      font-weight: 800;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s ease;
-      letter-spacing: 0.01em;
-      position: relative;
-      overflow: hidden;
-    }
-    .btn-download::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: white;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .btn-download:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,229,160,0.3); }
-    .btn-download:hover::after { opacity: 0.08; }
-    .btn-download:active { transform: translateY(0); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+    @keyframes tick { from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
-    .btn-icon { font-size: 1.2rem; }
-
-    .dl-note {
-      margin-top: 14px;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.6;
-    }
-    .dl-note a { color: var(--accent2); text-decoration: none; }
-    .dl-note a:hover { text-decoration: underline; }
-
-    /* Install steps */
-    .steps {
-      margin-top: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      text-align: left;
-    }
-    .step {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-    .step-num {
-      min-width: 22px; height: 22px;
-      background: rgba(0,229,160,0.1);
-      border: 1px solid rgba(0,229,160,0.3);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--accent);
-      font-weight: 700;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    /* Features section */
-    .features {
-      position: relative;
-      z-index: 1;
-      padding: 80px 24px;
-      max-width: 1000px;
-      margin: 0 auto;
-    }
-    .features-label {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      text-align: center;
-      margin-bottom: 48px;
-    }
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-    .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .feature-card:hover {
-      border-color: rgba(0,229,160,0.3);
-      transform: translateY(-3px);
-    }
-    .feature-icon {
-      font-size: 1.8rem;
-      margin-bottom: 14px;
-      display: block;
-    }
-    .feature-card h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .feature-card p {
-      font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    /* Footer */
-    footer {
-      position: relative;
-      z-index: 1;
-      border-top: 1px solid var(--border);
-      padding: 32px 48px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: gap;
-      gap: 16px;
-    }
-    footer p {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-    }
-    footer a {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--accent2);
-      text-decoration: none;
-    }
-    footer a:hover { text-decoration: underline; }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Scrolling ticker */
-    .ticker-wrap {
-      position: relative;
-      z-index: 1;
-      overflow: hidden;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 0;
-      background: var(--surface);
-      margin-bottom: 0;
-    }
-    .ticker {
-      display: flex;
-      gap: 48px;
-      animation: ticker 20s linear infinite;
-      white-space: nowrap;
-    }
-    .ticker-item {
-      font-family: 'Space Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }
-    .ticker-item span { color: var(--accent); margin-right: 12px; }
-    @keyframes ticker {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
-
-    @media (max-width: 600px) {
-      nav { padding: 16px 20px; }
-      .download-card { padding: 24px 20px; }
-      footer { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+    @media(max-width:600px){
+      nav{padding:14px 20px;}
+      .card-3d{padding:22px 18px;}
+      footer{padding:22px 20px;flex-direction:column;}
     }
   </style>
 </head>
 <body>
 
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
+<canvas id="bg-canvas"></canvas>
 
-  <!-- Nav -->
+<div class="page">
   <nav>
-    <div class="nav-logo">Snake<span>AI</span></div>
-    <div class="nav-badge">v1.0.0 · Windows</div>
+    <div class="nav-logo">Snake<em>AI</em></div>
+    <div class="nav-by">Created by <span>Ganesh Bathala</span></div>
   </nav>
 
-  <!-- Hero -->
   <section class="hero">
-    <div class="hero-tag">⚡ Now Available — Free Download</div>
-    <h1>
-      Your AI
-      <span class="line-accent">Meeting Assistant</span>
+    <div class="hero-eyebrow">⬡ Neural Intelligence System · v1.0.0</div>
+    <h1 class="hero-title">
+      <span class="glow-c">SNAKE</span><br/>
+      <span class="glow-p">AI</span> ASSISTANT
     </h1>
-    <p class="hero-desc">
-      Snake AI listens, transcribes, and summarizes your meetings in real time — powered by local AI, no subscription required.
-    </p>
+    <p class="hero-sub">Real-time Meeting Intelligence · Windows Desktop</p>
 
-    <!-- Download Card -->
-    <div class="download-card">
-      <div class="dl-platform">
-        <div class="dl-icon">🪟</div>
-        <div class="dl-info">
-          <h3>Windows Desktop App</h3>
-          <p>win-unpacked · x64 · Portable ZIP</p>
-        </div>
-      </div>
+    <div class="creator-badge">
+      <div class="dot"></div>
+      <span>Built by <strong>Ganesh Bathala</strong></span>
+    </div>
 
-      <div class="dl-meta">
-        <div class="dl-meta-item">
-          <span class="val">~110 MB</span>
-          <span class="lbl">Size</span>
-        </div>
-        <div class="dl-meta-item">
-          <span class="val">v1.0.0</span>
-          <span class="lbl">Version</span>
-        </div>
-        <div class="dl-meta-item">
-          <span class="val">Free</span>
-          <span class="lbl">License</span>
-        </div>
-      </div>
+    <div class="card-3d-wrap">
+      <div class="card-3d" id="card3d">
+        <div class="corner c-tl"></div>
+        <div class="corner c-tr"></div>
+        <div class="corner c-bl"></div>
+        <div class="corner c-br"></div>
 
-      <a
-        class="btn-download"
-        href="https://github.com/bathala262-ops/Snake-install/releases/download/v1.0.0/win-unpacked.zip"
-        download
-      >
-        <span class="btn-icon">⬇</span>
-        Download for Windows
-      </a>
-
-      <p class="dl-note">
-        No installer needed · Portable app ·
-        <a href="https://github.com/bathala262-ops/Snake-install/releases/tag/v1.0.0" target="_blank">View on GitHub</a>
-      </p>
-
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <span>Download and unzip <strong style="color:var(--text)">win-unpacked.zip</strong></span>
+        <div class="card-hdr">
+          <div class="card-ico">🪟</div>
+          <div>
+            <div class="card-t">Windows Desktop App</div>
+            <div class="card-s">win-unpacked · x64 · Portable ZIP</div>
+          </div>
         </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <span>Open the unzipped folder</span>
+
+        <div class="stats">
+          <div class="stat"><span class="sv">110 MB</span><span class="sl">Size</span></div>
+          <div class="stat"><span class="sv">v1.0.0</span><span class="sl">Build</span></div>
+          <div class="stat"><span class="sv">FREE</span><span class="sl">License</span></div>
         </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <span>Double-click <strong style="color:var(--text)">Snake-Ai.exe</strong> to launch</span>
+
+        <a class="btn-dl"
+           href="https://github.com/bathala262-ops/Snake-install/releases/download/v1.0.0/win-unpacked.zip"
+           download>
+          <span class="bi">⬇</span>
+          <span class="bt">Download for Windows</span>
+        </a>
+
+        <p class="dl-note">
+          No installer needed · Portable ·
+          <a href="https://github.com/bathala262-ops/Snake-install/releases/tag/v1.0.0" target="_blank">View Release →</a>
+        </p>
+
+        <div class="steps">
+          <div class="step"><div class="sn">1</div>Download & unzip <strong style="color:#e2e8f0;margin-left:4px">win-unpacked.zip</strong></div>
+          <div class="step"><div class="sn">2</div>Open the unzipped folder</div>
+          <div class="step"><div class="sn">3</div>Run <strong style="color:#e2e8f0;margin-left:4px">Snake-Ai.exe</strong> — done!</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Ticker -->
   <div class="ticker-wrap">
     <div class="ticker">
-      <div class="ticker-item"><span>✦</span> Real-time Transcription</div>
-      <div class="ticker-item"><span>✦</span> AI Meeting Summaries</div>
-      <div class="ticker-item"><span>✦</span> Works Offline</div>
-      <div class="ticker-item"><span>✦</span> No Subscription</div>
-      <div class="ticker-item"><span>✦</span> Windows Native</div>
-      <div class="ticker-item"><span>✦</span> Free Forever</div>
-      <!-- duplicate for seamless loop -->
-      <div class="ticker-item"><span>✦</span> Real-time Transcription</div>
-      <div class="ticker-item"><span>✦</span> AI Meeting Summaries</div>
-      <div class="ticker-item"><span>✦</span> Works Offline</div>
-      <div class="ticker-item"><span>✦</span> No Subscription</div>
-      <div class="ticker-item"><span>✦</span> Windows Native</div>
-      <div class="ticker-item"><span>✦</span> Free Forever</div>
+      <div class="ti"><b>✦</b>Real-time Transcription</div>
+      <div class="ti"><b>✦</b>AI Summaries</div>
+      <div class="ti"><b>✦</b>Works Offline</div>
+      <div class="ti"><b>✦</b>No Subscription</div>
+      <div class="ti"><b>✦</b>By Ganesh Bathala</div>
+      <div class="ti"><b>✦</b>Windows Native</div>
+      <div class="ti"><b>✦</b>Free Forever</div>
+      <div class="ti"><b>✦</b>Real-time Transcription</div>
+      <div class="ti"><b>✦</b>AI Summaries</div>
+      <div class="ti"><b>✦</b>Works Offline</div>
+      <div class="ti"><b>✦</b>No Subscription</div>
+      <div class="ti"><b>✦</b>By Ganesh Bathala</div>
+      <div class="ti"><b>✦</b>Windows Native</div>
+      <div class="ti"><b>✦</b>Free Forever</div>
     </div>
   </div>
 
-  <!-- Features -->
   <section class="features">
-    <p class="features-label">// What's inside</p>
-    <div class="features-grid">
-      <div class="feature-card">
-        <span class="feature-icon">🎙️</span>
-        <h3>Live Transcription</h3>
-        <p>Captures everything spoken in your meetings with high accuracy, in real time.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🤖</span>
-        <h3>AI Summaries</h3>
-        <p>Automatically generates concise meeting summaries and action items when you're done.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🔒</span>
-        <h3>Fully Local</h3>
-        <p>Your conversations never leave your machine. No cloud, no data sharing.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">⚡</span>
-        <h3>Portable App</h3>
-        <p>No installation needed. Unzip and run — works on any Windows 10/11 PC.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🎯</span>
-        <h3>Zero Subscription</h3>
-        <p>One download, use forever. No account, no login, no monthly fees.</p>
-      </div>
-      <div class="feature-card">
-        <span class="feature-icon">🛠️</span>
-        <h3>Open Source</h3>
-        <p>Built transparently. Check the code, contribute, or build on top of it freely.</p>
-      </div>
+    <p class="sec-lbl"><b>//</b> System Capabilities</p>
+    <div class="feat-grid">
+      <div class="feat"><span class="fi">🎙️</span><h3>Live Transcription</h3><p>Captures everything spoken in your meetings with high accuracy, processing audio locally in real time.</p></div>
+      <div class="feat"><span class="fi">🤖</span><h3>AI Summaries</h3><p>Automatically generates concise meeting summaries and action items the moment your call ends.</p></div>
+      <div class="feat"><span class="fi">🔒</span><h3>Fully Local</h3><p>Your conversations never leave your machine. No cloud processing, no data sharing, ever.</p></div>
+      <div class="feat"><span class="fi">⚡</span><h3>Portable App</h3><p>No installation needed. Unzip and run on any Windows 10/11 PC in seconds.</p></div>
+      <div class="feat"><span class="fi">🎯</span><h3>Zero Subscription</h3><p>One download, use forever. No account required, no monthly fees, no paywalls.</p></div>
+      <div class="feat"><span class="fi">🛠️</span><h3>Open Source</h3><p>Built transparently by Ganesh Bathala. Check the code, fork it, or contribute freely.</p></div>
     </div>
   </section>
 
-  <!-- Footer -->
   <footer>
-    <p>© 2026 Snake AI Assistant · Built with Electron</p>
-    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+    <div class="fl">© 2026 Snake AI Assistant · Crafted by <strong>Ganesh Bathala</strong></div>
+    <div class="flinks">
       <a href="https://github.com/bathala262-ops/Snake-install" target="_blank">GitHub →</a>
-      <a href="https://github.com/bathala262-ops/Snake-install/releases" target="_blank">All Releases →</a>
-      <a href="https://github.com/bathala262-ops/Snake-install/issues" target="_blank">Report a Bug →</a>
+      <a href="https://github.com/bathala262-ops/Snake-install/releases" target="_blank">Releases →</a>
+      <a href="https://github.com/bathala262-ops/Snake-install/issues" target="_blank">Report Bug →</a>
     </div>
   </footer>
+</div>
 
+<script>
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x020408, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x020408, 0.018);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,0,30);
+
+// Floating wireframe shapes
+const shapes = [];
+const geos = [
+  new THREE.OctahedronGeometry(1.2,0),
+  new THREE.TetrahedronGeometry(1,0),
+  new THREE.BoxGeometry(1.4,1.4,1.4),
+  new THREE.IcosahedronGeometry(1,0),
+];
+for(let i=0;i<28;i++){
+  const geo = geos[Math.floor(Math.random()*geos.length)];
+  const mat = new THREE.MeshBasicMaterial({
+    color: Math.random()>.5 ? 0x00ffff : 0xa855f7,
+    wireframe:true, opacity:.12+Math.random()*.08, transparent:true
+  });
+  const mesh = new THREE.Mesh(geo,mat);
+  const s = 35;
+  mesh.position.set((Math.random()-.5)*s,(Math.random()-.5)*s,(Math.random()-.5)*18);
+  const sc = .4+Math.random()*1.8;
+  mesh.scale.setScalar(sc);
+  mesh.rotation.set(Math.random()*Math.PI*2,Math.random()*Math.PI*2,Math.random()*Math.PI*2);
+  scene.add(mesh);
+  shapes.push({mesh, rx:(Math.random()-.5)*.005, ry:(Math.random()-.5)*.006, fs:.001+Math.random()*.002, fo:Math.random()*Math.PI*2, oy:mesh.position.y});
+}
+
+// Stars cyan
+const sg1 = new THREE.BufferGeometry();
+const sp1 = new Float32Array(1400*3);
+for(let i=0;i<sp1.length;i++) sp1[i]=(Math.random()-.5)*130;
+sg1.setAttribute('position',new THREE.BufferAttribute(sp1,3));
+scene.add(new THREE.Points(sg1, new THREE.PointsMaterial({color:0x00ffff,size:.07,transparent:true,opacity:.45})));
+
+// Stars purple
+const sg2 = new THREE.BufferGeometry();
+const sp2 = new Float32Array(700*3);
+for(let i=0;i<sp2.length;i++) sp2[i]=(Math.random()-.5)*130;
+sg2.setAttribute('position',new THREE.BufferAttribute(sp2,3));
+scene.add(new THREE.Points(sg2, new THREE.PointsMaterial({color:0xa855f7,size:.09,transparent:true,opacity:.3})));
+
+// Rings
+const ring1 = new THREE.Mesh(new THREE.TorusGeometry(10,.04,8,100), new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:.06}));
+ring1.rotation.x = Math.PI/2.5; scene.add(ring1);
+const ring2 = new THREE.Mesh(new THREE.TorusGeometry(7,.03,8,80), new THREE.MeshBasicMaterial({color:0xa855f7,transparent:true,opacity:.05}));
+ring2.rotation.x = Math.PI/3; ring2.rotation.z=.5; scene.add(ring2);
+
+// Mouse
+let mx=0,my=0;
+document.addEventListener('mousemove',e=>{
+  mx=(e.clientX/window.innerWidth-.5)*2;
+  my=(e.clientY/window.innerHeight-.5)*2;
+});
+
+// 3D card tilt
+const card = document.getElementById('card3d');
+document.addEventListener('mousemove',e=>{
+  const r=card.getBoundingClientRect();
+  const dx=(e.clientX-(r.left+r.width/2))/(r.width/2);
+  const dy=(e.clientY-(r.top+r.height/2))/(r.height/2);
+  card.style.transform=`rotateY(${dx*12}deg) rotateX(${-dy*12}deg)`;
+  card.style.transition='transform .08s ease';
+});
+document.addEventListener('mouseleave',()=>{
+  card.style.transform='rotateY(0deg) rotateX(0deg)';
+  card.style.transition='transform .6s ease';
+});
+
+const clock = new THREE.Clock();
+(function animate(){
+  requestAnimationFrame(animate);
+  const t=clock.getElapsedTime();
+  shapes.forEach(s=>{
+    s.mesh.rotation.x+=s.rx;
+    s.mesh.rotation.y+=s.ry;
+    s.mesh.position.y=s.oy+Math.sin(t*s.fs*60+s.fo)*.6;
+  });
+  ring1.rotation.z+=.0008;
+  ring2.rotation.z-=.0006;
+  camera.position.x+=(mx*3-camera.position.x)*.02;
+  camera.position.y+=(-my*2-camera.position.y)*.02;
+  camera.lookAt(scene.position);
+  renderer.render(scene,camera);
+})();
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
 </body>
 </html>
